@@ -138,15 +138,15 @@ local function updateCooldown()
     end
 end
 
--- وظيفة تأثير البرق بنمط منتظم
+-- وظيفة تأثير البرق بنمط هادئ
 local function startLightningEffect()
     -- إخفاء القائمة عند البدء
     menuFrame.Visible = false
     
-    -- تشغيل الموسيقى الخلفية بصوت قوي
+    -- تشغيل الموسيقى الخلفية بصوت معتدل
     local music = Instance.new("Sound")
     music.SoundId = "rbxassetid://1836280076"
-    music.Volume = 2.0 -- صوت قوي جداً
+    music.Volume = 0.7 -- صوت معتدل
     music.Parent = SoundService
     music:Play()
     
@@ -156,50 +156,61 @@ local function startLightningEffect()
     local originalFogEnd = lighting.FogEnd
     local originalAmbient = lighting.Ambient
     
-    lighting.Brightness = 0.1
-    lighting.FogEnd = 200
-    lighting.Ambient = Color3.fromRGB(50, 50, 80)
+    lighting.Brightness = 0.3
+    lighting.FogEnd = 500
+    lighting.Ambient = Color3.fromRGB(80, 80, 100)
     
-    -- نمط البرق: تشغيل لمدة 2 ثانية، إيقاف لمدة 2 ثانية
+    -- نمط البرق الهادئ: 5 ثواني برق، 6 توقف، 2 برق، 6 توقف
     local lightningPattern = {
-        {start = 0, duration = 2},    -- برق من 0 إلى 2 ثانية
-        {start = 4, duration = 2},    -- برق من 4 إلى 6 ثانية  
-        {start = 8, duration = 2},    -- برق من 8 إلى 10 ثانية
-        {start = 12, duration = 2},   -- برق من 12 إلى 14 ثانية
-        {start = 16, duration = 2},   -- برق من 16 إلى 18 ثانية
-        {start = 20, duration = 2},   -- برق من 20 إلى 22 ثانية
-        {start = 24, duration = 2},   -- برق من 24 إلى 26 ثانية
-        {start = 28, duration = 2},   -- برق من 28 إلى 30 ثانية
-        {start = 32, duration = 2},   -- برق من 32 إلى 34 ثانية
-        {start = 36, duration = 2},   -- برق من 36 إلى 38 ثانية
-        {start = 40, duration = 2},   -- برق من 40 إلى 42 ثانية
-        {start = 44, duration = 2},   -- برق من 44 إلى 46 ثانية
-        {start = 48, duration = 2},   -- برق من 48 إلى 50 ثانية
-        {start = 52, duration = 2},   -- برق من 52 إلى 54 ثانية
-        {start = 56, duration = 1}    -- برق من 56 إلى 57 ثانية
+        -- أول 5 ثواني: برق
+        {start = 0, duration = 5, active = true},
+        -- توقف 6 ثواني
+        {start = 5, duration = 6, active = false},
+        -- برق 2 ثواني
+        {start = 11, duration = 2, active = true},
+        -- توقف 6 ثواني
+        {start = 13, duration = 6, active = false},
+        -- برق 6 ثواني
+        {start = 19, duration = 6, active = true},
+        -- توقف 5 ثواني
+        {start = 25, duration = 5, active = false},
+        -- برق 4 ثواني
+        {start = 30, duration = 4, active = true},
+        -- توقف 4 ثواني
+        {start = 34, duration = 4, active = false},
+        -- برق 3 ثواني
+        {start = 38, duration = 3, active = true},
+        -- توقف 5 ثواني
+        {start = 41, duration = 5, active = false},
+        -- برق 4 ثواني
+        {start = 46, duration = 4, active = true},
+        -- توقف 3 ثواني
+        {start = 50, duration = 3, active = false},
+        -- برق 4 ثواني أخيرة
+        {start = 53, duration = 4, active = true}
     }
     
     local function createLightning()
-        -- صوت البرق بصوت قوي
+        -- صوت البرق بصوت معتدل
         local thunderSound = Instance.new("Sound")
         thunderSound.SoundId = "rbxassetid://1079408535"
-        thunderSound.Volume = 1.5 -- صوت قوي
+        thunderSound.Volume = 0.6 -- صوت معتدل
         thunderSound.Parent = SoundService
         thunderSound:Play()
         
-        -- فلاش ضوئي قوي
+        -- فلاش ضوئي خفيف
         local flash = Instance.new("SurfaceLight")
-        flash.Brightness = 100
-        flash.Range = 200
-        flash.Color = Color3.fromRGB(200, 220, 255)
+        flash.Brightness = 40
+        flash.Range = 100
+        flash.Color = Color3.fromRGB(180, 200, 255)
         flash.Parent = lighting
         
-        -- تأثير إضافي سريع
-        lighting.Ambient = Color3.fromRGB(150, 150, 200)
+        -- تأثير إضافي خفيف
+        lighting.Ambient = Color3.fromRGB(120, 120, 180)
         
-        wait(0.3)
+        wait(0.2)
         flash:Destroy()
-        lighting.Ambient = Color3.fromRGB(50, 50, 80)
+        lighting.Ambient = Color3.fromRGB(80, 80, 100)
     end
     
     -- تشغيل البرق حسب النمط المحدد
@@ -225,8 +236,8 @@ local function startLightningEffect()
         -- التحقق من النمط الزمني للبرق
         for _, pattern in ipairs(lightningPattern) do
             if elapsed >= pattern.start and elapsed < pattern.start + pattern.duration then
-                -- خلال فترة البرق، إنشاء برق كل 0.5 ثانية
-                if math.random(1, 2) == 1 then -- تقليل التكرار قليلاً
+                -- إذا كانت هذه فترة برق، ننزل برق خفيف
+                if pattern.active and math.random(1, 3) == 1 then -- برق كل 3 إطارات تقريباً
                     spawn(createLightning)
                 end
                 break
@@ -236,7 +247,7 @@ local function startLightningEffect()
     
     -- بدء البرق فوراً
     spawn(function()
-        wait(0.5)
+        wait(1)
         createLightning()
     end)
 end
@@ -279,4 +290,4 @@ end
 
 game:GetService("UserInputService").InputBegan:Connect(closeMenuOnClickOutside)
 
-print("تم تحميل نظام البرق بنجاح! v1.0")
+print("تم تحميل نظام البرق بنجاح! v1.0 - النسخة الهادئة")
