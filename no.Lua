@@ -23,6 +23,11 @@ smallButton.Font = Enum.Font.GothamBold
 smallButton.TextSize = 20
 smallButton.Parent = screenGui
 
+-- زاوية مستديرة للزر
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.Parent = smallButton
+
 -- القائمة المنبثقة (مخفية في البداية)
 local menuFrame = Instance.new("Frame")
 menuFrame.Name = "MenuFrame"
@@ -82,9 +87,9 @@ lightningButton.Font = Enum.Font.GothamBold
 lightningButton.TextSize = 16
 lightningButton.Parent = menuFrame
 
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
-buttonCorner.Parent = lightningButton
+local lightningButtonCorner = Instance.new("UICorner")
+lightningButtonCorner.CornerRadius = UDim.new(0, 8)
+lightningButtonCorner.Parent = lightningButton
 
 -- قسم الصيانة
 local maintenanceFrame = Instance.new("Frame")
@@ -133,14 +138,15 @@ local function updateCooldown()
     end
 end
 
--- وظيفة تأثير البرق مع برق كثير
+-- وظيفة تأثير البرق بنمط منتظم
 local function startLightningEffect()
     -- إخفاء القائمة عند البدء
     menuFrame.Visible = false
     
-    -- تشغيل الموسيقى الخلفية
+    -- تشغيل الموسيقى الخلفية بصوت قوي
     local music = Instance.new("Sound")
     music.SoundId = "rbxassetid://1836280076"
+    music.Volume = 2.0 -- صوت قوي جداً
     music.Parent = SoundService
     music:Play()
     
@@ -148,61 +154,90 @@ local function startLightningEffect()
     local lighting = game:GetService("Lighting")
     local originalBrightness = lighting.Brightness
     local originalFogEnd = lighting.FogEnd
+    local originalAmbient = lighting.Ambient
     
-    lighting.Brightness = 0.2
-    lighting.FogEnd = 300
+    lighting.Brightness = 0.1
+    lighting.FogEnd = 200
+    lighting.Ambient = Color3.fromRGB(50, 50, 80)
     
-    -- تأثيرات البرق الكثيرة
-    local lightningCount = 0
-    local maxLightnings = 30 -- زيادة عدد البرق
+    -- نمط البرق: تشغيل لمدة 2 ثانية، إيقاف لمدة 2 ثانية
+    local lightningPattern = {
+        {start = 0, duration = 2},    -- برق من 0 إلى 2 ثانية
+        {start = 4, duration = 2},    -- برق من 4 إلى 6 ثانية  
+        {start = 8, duration = 2},    -- برق من 8 إلى 10 ثانية
+        {start = 12, duration = 2},   -- برق من 12 إلى 14 ثانية
+        {start = 16, duration = 2},   -- برق من 16 إلى 18 ثانية
+        {start = 20, duration = 2},   -- برق من 20 إلى 22 ثانية
+        {start = 24, duration = 2},   -- برق من 24 إلى 26 ثانية
+        {start = 28, duration = 2},   -- برق من 28 إلى 30 ثانية
+        {start = 32, duration = 2},   -- برق من 32 إلى 34 ثانية
+        {start = 36, duration = 2},   -- برق من 36 إلى 38 ثانية
+        {start = 40, duration = 2},   -- برق من 40 إلى 42 ثانية
+        {start = 44, duration = 2},   -- برق من 44 إلى 46 ثانية
+        {start = 48, duration = 2},   -- برق من 48 إلى 50 ثانية
+        {start = 52, duration = 2},   -- برق من 52 إلى 54 ثانية
+        {start = 56, duration = 1}    -- برق من 56 إلى 57 ثانية
+    }
     
     local function createLightning()
-        if lightningCount >= maxLightnings then return end
-        lightningCount += 1
-        
-        -- صوت البرق
+        -- صوت البرق بصوت قوي
         local thunderSound = Instance.new("Sound")
         thunderSound.SoundId = "rbxassetid://1079408535"
+        thunderSound.Volume = 1.5 -- صوت قوي
         thunderSound.Parent = SoundService
         thunderSound:Play()
         
         -- فلاش ضوئي قوي
         local flash = Instance.new("SurfaceLight")
-        flash.Brightness = 80
-        flash.Range = 150
+        flash.Brightness = 100
+        flash.Range = 200
         flash.Color = Color3.fromRGB(200, 220, 255)
         flash.Parent = lighting
         
-        -- تأثير إضافي للفلاش
-        local originalAmbient = lighting.Ambient
-        lighting.Ambient = Color3.fromRGB(100, 100, 150)
+        -- تأثير إضافي سريع
+        lighting.Ambient = Color3.fromRGB(150, 150, 200)
         
-        wait(0.1)
+        wait(0.3)
         flash:Destroy()
-        lighting.Ambient = originalAmbient
+        lighting.Ambient = Color3.fromRGB(50, 50, 80)
     end
     
-    -- إنشاء برق كثيف خلال 57 ثانية
+    -- تشغيل البرق حسب النمط المحدد
     local startTime = tick()
     local endTime = startTime + cooldownTime
     
     local connection
     connection = RunService.Heartbeat:Connect(function()
         local currentTime = tick()
+        local elapsed = currentTime - startTime
+        
         if currentTime >= endTime then
             connection:Disconnect()
             -- إعادة الإعدادات الأصلية
             lighting.Brightness = originalBrightness
             lighting.FogEnd = originalFogEnd
+            lighting.Ambient = originalAmbient
             music:Stop()
             cooldownActive = false
             return
         end
         
-        -- برق كثيف - كل 1-2 ثانية برق
-        if math.random(1, 15) == 1 then
-            spawn(createLightning)
+        -- التحقق من النمط الزمني للبرق
+        for _, pattern in ipairs(lightningPattern) do
+            if elapsed >= pattern.start and elapsed < pattern.start + pattern.duration then
+                -- خلال فترة البرق، إنشاء برق كل 0.5 ثانية
+                if math.random(1, 2) == 1 then -- تقليل التكرار قليلاً
+                    spawn(createLightning)
+                end
+                break
+            end
         end
+    end)
+    
+    -- بدء البرق فوراً
+    spawn(function()
+        wait(0.5)
+        createLightning()
     end)
 end
 
@@ -222,5 +257,26 @@ lightningButton.MouseButton1Click:Connect(function()
     -- تعطيل الزر مؤقتاً
     lightningButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 end)
+
+-- إغلاق القائمة عند النقر خارجها
+local function closeMenuOnClickOutside(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+        local buttonPos = smallButton.AbsolutePosition
+        local buttonSize = smallButton.AbsoluteSize
+        local menuPos = menuFrame.AbsolutePosition
+        local menuSize = menuFrame.AbsoluteSize
+        
+        local x, y = mouse.X, mouse.Y
+        
+        -- إذا النقر خارج الزر والقائمة
+        if not (x >= buttonPos.X and x <= buttonPos.X + buttonSize.X and y >= buttonPos.Y and y <= buttonPos.Y + buttonSize.Y) and
+           not (x >= menuPos.X and x <= menuPos.X + menuSize.X and y >= menuPos.Y and y <= menuPos.Y + menuSize.Y) then
+            menuFrame.Visible = false
+        end
+    end
+end
+
+game:GetService("UserInputService").InputBegan:Connect(closeMenuOnClickOutside)
 
 print("تم تحميل نظام البرق بنجاح! v1.0")
