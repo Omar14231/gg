@@ -1,293 +1,289 @@
+-- LocalScript في StarterPlayerScripts
 local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local SoundService = game:GetService("SoundService")
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+-- إنشاء واجهة المستخدم
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CrystalsTracker"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
 
--- إنشاء واجهة الشاشة الرئيسية
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "LightningSystem"
-screenGui.Parent = playerGui
+-- الإحداثيات المطلوبة للجواهر
+local crystalLocations = {
+    {X = 192, Y = 7, Z = -279},
+    {X = 166, Y = 4, Z = -210},
+    {X = 128, Y = 18, Z = -61},
+    {X = 66, Y = 18, Z = 1},
+    {X = 192, Y = 6, Z = -269},
+    {X = 68, Y = 49, Z = -123},
+    {X = -102, Y = 7, Z = -90},
+    {X = 22, Y = 18, Z = 26}
+}
 
--- زر صغير في أعلى يسار الشاشة
-local smallButton = Instance.new("TextButton")
-smallButton.Name = "SmallButton"
-smallButton.Size = UDim2.new(0, 40, 0, 40)
-smallButton.Position = UDim2.new(0, 10, 0, 10)
-smallButton.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-smallButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-smallButton.Text = "⚡"
-smallButton.Font = Enum.Font.GothamBold
-smallButton.TextSize = 20
-smallButton.Parent = screenGui
+-- متغيرات التتبع
+local collectedCrystals = 0
+local totalCrystals = #crystalLocations
+local crystals = {}
+local connection
 
--- زاوية مستديرة للزر
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
-buttonCorner.Parent = smallButton
+-- واجهة العد
+local crystalsCounter = Instance.new("Frame")
+crystalsCounter.Name = "CrystalsCounter"
+crystalsCounter.Size = UDim2.new(0, 200, 0, 80)
+crystalsCounter.Position = UDim2.new(1, -210, 0, 10)
+crystalsCounter.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+crystalsCounter.BorderSizePixel = 0
+crystalsCounter.Parent = ScreenGui
 
--- القائمة المنبثقة (مخفية في البداية)
-local menuFrame = Instance.new("Frame")
-menuFrame.Name = "MenuFrame"
-menuFrame.Size = UDim2.new(0, 280, 0, 350)
-menuFrame.Position = UDim2.new(0, 50, 0, 10)
-menuFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-menuFrame.BorderSizePixel = 0
-menuFrame.Visible = false
-menuFrame.Parent = screenGui
+-- صورة الكريستال
+local crystalImage = Instance.new("ImageLabel")
+crystalImage.Name = "CrystalImage"
+crystalImage.Size = UDim2.new(0, 50, 0, 50)
+crystalImage.Position = UDim2.new(0, 10, 0.5, -25)
+crystalImage.BackgroundTransparency = 1
+crystalImage.Image = "rbxassetid://6251281936" -- صورة الكريستال
+crystalImage.Parent = crystalsCounter
 
--- زاوية مستديرة للقائمة
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = menuFrame
+-- عداد الجواهر
+local counterText = Instance.new("TextLabel")
+counterText.Name = "CounterText"
+counterText.Size = UDim2.new(0, 120, 1, 0)
+counterText.Position = UDim2.new(0, 70, 0, 0)
+counterText.BackgroundTransparency = 1
+counterText.TextColor3 = Color3.fromRGB(255, 255, 255)
+counterText.Text = collectedCrystals .. " / " .. totalCrystals
+counterText.Font = Enum.Font.GothamBold
+counterText.TextSize = 20
+counterText.TextXAlignment = Enum.TextXAlignment.Left
+counterText.Parent = crystalsCounter
 
--- عنوان القائمة
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Name = "TitleLabel"
-titleLabel.Size = UDim2.new(1, 0, 0, 50)
-titleLabel.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.Text = "⚡ نظام البرق v1.0"
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 18
-titleLabel.Parent = menuFrame
-
--- زاوية مستديرة للعنوان
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 8)
-titleCorner.Parent = titleLabel
-
--- حقل كتابة اسم اللعبة
-local gameNameBox = Instance.new("TextBox")
-gameNameBox.Name = "GameNameBox"
-gameNameBox.Size = UDim2.new(0.9, 0, 0, 40)
-gameNameBox.Position = UDim2.new(0.05, 0, 0, 70)
-gameNameBox.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-gameNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-gameNameBox.PlaceholderText = "اكتب اسم اللعبة هنا..."
-gameNameBox.Font = Enum.Font.Gotham
-gameNameBox.TextSize = 14
-gameNameBox.Parent = menuFrame
-
-local boxCorner = Instance.new("UICorner")
-boxCorner.CornerRadius = UDim.new(0, 6)
-boxCorner.Parent = gameNameBox
-
--- زر تشغيل البرق داخل القائمة
-local lightningButton = Instance.new("TextButton")
-lightningButton.Name = "LightningButton"
-lightningButton.Size = UDim2.new(0.9, 0, 0, 45)
-lightningButton.Position = UDim2.new(0.05, 0, 0, 130)
-lightningButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-lightningButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-lightningButton.Text = "بدء البرق ⚡"
-lightningButton.Font = Enum.Font.GothamBold
-lightningButton.TextSize = 16
-lightningButton.Parent = menuFrame
-
-local lightningButtonCorner = Instance.new("UICorner")
-lightningButtonCorner.CornerRadius = UDim.new(0, 8)
-lightningButtonCorner.Parent = lightningButton
-
--- قسم الصيانة
-local maintenanceFrame = Instance.new("Frame")
-maintenanceFrame.Name = "MaintenanceFrame"
-maintenanceFrame.Size = UDim2.new(0.9, 0, 0, 80)
-maintenanceFrame.Position = UDim2.new(0.05, 0, 0, 200)
-maintenanceFrame.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-maintenanceFrame.Parent = menuFrame
-
-local maintenanceCorner = Instance.new("UICorner")
-maintenanceCorner.CornerRadius = UDim.new(0, 8)
-maintenanceCorner.Parent = maintenanceFrame
-
-local maintenanceLabel = Instance.new("TextLabel")
-maintenanceLabel.Name = "MaintenanceLabel"
-maintenanceLabel.Size = UDim2.new(1, 0, 1, 0)
-maintenanceLabel.BackgroundTransparency = 1
-maintenanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-maintenanceLabel.Text = "🛠️ النظام قيد الصيانة\n\nسيتم إصلاح الأخطاء قريباً"
-maintenanceLabel.Font = Enum.Font.GothamBold
-maintenanceLabel.TextSize = 14
-maintenanceLabel.TextWrapped = true
-maintenanceLabel.Parent = maintenanceFrame
-
--- متغيرات التحكم
-local cooldownActive = false
-local cooldownTime = 57
-local remainingTime = 0
-
--- وظيفة فتح/إغلاق القائمة
-local function toggleMenu()
-    menuFrame.Visible = not menuFrame.Visible
+-- دالة تشغيل الصوت
+local function playCrystalSound()
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://5226834046"
+    sound.Volume = 0.7
+    sound.Parent = workspace
+    sound:Play()
+    
+    game:GetService("Debris"):AddItem(sound, 5)
 end
 
--- وظيفة تحديث العداد
-local function updateCooldown()
-    while cooldownActive and remainingTime > 0 do
-        lightningButton.Text = "⏳ " .. remainingTime .. "s"
-        remainingTime -= 1
-        wait(1)
-    end
+-- دالة إنشاء كريستال
+local function createCrystal(location, index)
+    local crystal = Instance.new("Part")
+    crystal.Name = "Crystal_" .. index
+    crystal.Size = Vector3.new(2, 3, 2)
+    crystal.Position = Vector3.new(location.X, location.Y, location.Z)
+    crystal.Anchored = true
+    crystal.CanCollide = false
+    crystal.Material = Enum.Material.Neon
     
-    if not cooldownActive then
-        lightningButton.Text = "بدء البرق ⚡"
-        lightningButton.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-    end
-end
-
--- وظيفة تأثير البرق بنمط هادئ
-local function startLightningEffect()
-    -- إخفاء القائمة عند البدء
-    menuFrame.Visible = false
-    
-    -- تشغيل الموسيقى الخلفية بصوت معتدل
-    local music = Instance.new("Sound")
-    music.SoundId = "rbxassetid://1836280076"
-    music.Volume = 0.7 -- صوت معتدل
-    music.Parent = SoundService
-    music:Play()
-    
-    -- تغيير إعدادات الإضاءة
-    local lighting = game:GetService("Lighting")
-    local originalBrightness = lighting.Brightness
-    local originalFogEnd = lighting.FogEnd
-    local originalAmbient = lighting.Ambient
-    
-    lighting.Brightness = 0.3
-    lighting.FogEnd = 500
-    lighting.Ambient = Color3.fromRGB(80, 80, 100)
-    
-    -- نمط البرق الهادئ: 5 ثواني برق، 6 توقف، 2 برق، 6 توقف
-    local lightningPattern = {
-        -- أول 5 ثواني: برق
-        {start = 0, duration = 5, active = true},
-        -- توقف 6 ثواني
-        {start = 5, duration = 6, active = false},
-        -- برق 2 ثواني
-        {start = 11, duration = 2, active = true},
-        -- توقف 6 ثواني
-        {start = 13, duration = 6, active = false},
-        -- برق 6 ثواني
-        {start = 19, duration = 6, active = true},
-        -- توقف 5 ثواني
-        {start = 25, duration = 5, active = false},
-        -- برق 4 ثواني
-        {start = 30, duration = 4, active = true},
-        -- توقف 4 ثواني
-        {start = 34, duration = 4, active = false},
-        -- برق 3 ثواني
-        {start = 38, duration = 3, active = true},
-        -- توقف 5 ثواني
-        {start = 41, duration = 5, active = false},
-        -- برق 4 ثواني
-        {start = 46, duration = 4, active = true},
-        -- توقف 3 ثواني
-        {start = 50, duration = 3, active = false},
-        -- برق 4 ثواني أخيرة
-        {start = 53, duration = 4, active = true}
+    -- ألوان عشوائية للكريستالات
+    local colors = {
+        Color3.fromRGB(255, 50, 50),    -- أحمر
+        Color3.fromRGB(50, 255, 50),    -- أخضر
+        Color3.fromRGB(50, 50, 255),    -- أزرق
+        Color3.fromRGB(255, 255, 50),   -- أصفر
+        Color3.fromRGB(255, 50, 255),   -- وردي
+        Color3.fromRGB(50, 255, 255),   -- تركواز
+        Color3.fromRGB(255, 150, 50),   -- برتقالي
+        Color3.fromRGB(150, 50, 255)    -- بنفسجي
     }
     
-    local function createLightning()
-        -- صوت البرق بصوت معتدل
-        local thunderSound = Instance.new("Sound")
-        thunderSound.SoundId = "rbxassetid://1079408535"
-        thunderSound.Volume = 0.6 -- صوت معتدل
-        thunderSound.Parent = SoundService
-        thunderSound:Play()
-        
-        -- فلاش ضوئي خفيف
-        local flash = Instance.new("SurfaceLight")
-        flash.Brightness = 40
-        flash.Range = 100
-        flash.Color = Color3.fromRGB(180, 200, 255)
-        flash.Parent = lighting
-        
-        -- تأثير إضافي خفيف
-        lighting.Ambient = Color3.fromRGB(120, 120, 180)
-        
-        wait(0.2)
-        flash:Destroy()
-        lighting.Ambient = Color3.fromRGB(80, 80, 100)
-    end
+    crystal.BrickColor = BrickColor.new(colors[index] or colors[1])
+    crystal.Parent = workspace
     
-    -- تشغيل البرق حسب النمط المحدد
-    local startTime = tick()
-    local endTime = startTime + cooldownTime
+    -- نقطة ضوء
+    local pointLight = Instance.new("PointLight")
+    pointLight.Brightness = 2
+    pointLight.Range = 10
+    pointLight.Color = crystal.BrickColor.Color
+    pointLight.Parent = crystal
     
-    local connection
-    connection = RunService.Heartbeat:Connect(function()
-        local currentTime = tick()
-        local elapsed = currentTime - startTime
+    -- تأثير التوهج
+    local surfaceGui = Instance.new("SurfaceGui")
+    surfaceGui.Face = Enum.NormalId.Top
+    surfaceGui.Parent = crystal
+    
+    local glowFrame = Instance.new("Frame")
+    glowFrame.Size = UDim2.new(1, 0, 1, 0)
+    glowFrame.BackgroundColor3 = crystal.BrickColor.Color
+    glowFrame.BackgroundTransparency = 0.7
+    glowFrame.Parent = surfaceGui
+    
+    -- تفعيل اللمس
+    local touchPart = Instance.new("Part")
+    touchPart.Name = "TouchPart"
+    touchPart.Size = Vector3.new(4, 4, 4)
+    touchPart.Position = crystal.Position
+    touchPart.Anchored = true
+    touchPart.CanCollide = false
+    touchPart.Transparency = 1
+    touchPart.Parent = crystal
+    
+    -- تأثير الطيران والتدوير
+    local startY = crystal.Position.Y
+    local timeOffset = math.random() * 10
+    
+    connection = RunService.Heartbeat:Connect(function(deltaTime)
+        local time = tick() + timeOffset
+        crystal.CFrame = crystal.CFrame * CFrame.Angles(0, deltaTime * 2, 0)
         
-        if currentTime >= endTime then
-            connection:Disconnect()
-            -- إعادة الإعدادات الأصلية
-            lighting.Brightness = originalBrightness
-            lighting.FogEnd = originalFogEnd
-            lighting.Ambient = originalAmbient
-            music:Stop()
-            cooldownActive = false
-            return
-        end
+        -- حركة الطيران الخفيفة
+        local newY = startY + math.sin(time * 2) * 1.5
+        crystal.Position = Vector3.new(crystal.Position.X, newY, crystal.Position.Z)
+        touchPart.Position = crystal.Position
         
-        -- التحقق من النمط الزمني للبرق
-        for _, pattern in ipairs(lightningPattern) do
-            if elapsed >= pattern.start and elapsed < pattern.start + pattern.duration then
-                -- إذا كانت هذه فترة برق، ننزل برق خفيف
-                if pattern.active and math.random(1, 3) == 1 then -- برق كل 3 إطارات تقريباً
-                    spawn(createLightning)
+        -- تأثير النبض للضوء
+        pointLight.Brightness = 1.5 + math.sin(time * 3) * 0.5
+    end)
+    
+    -- حدث اللمس
+    touchPart.Touched:Connect(function(hit)
+        local character = hit.Parent
+        if character and character:FindFirstChild("Humanoid") and character == Player.Character then
+            -- التأكد من أن اللاعب هو من لمس الكريستال
+            if not crystal:GetAttribute("Collected") then
+                crystal:SetAttribute("Collected", true)
+                
+                -- إزالة الكريستال
+                connection:Disconnect()
+                crystal:Destroy()
+                
+                -- زيادة العداد
+                collectedCrystals = collectedCrystals + 1
+                counterText.Text = collectedCrystals .. " / " .. totalCrystals
+                
+                -- تشغيل الصوت
+                playCrystalSound()
+                
+                -- تأثيرات جمع الكريستال
+                showCollectionEffect(index)
+                
+                -- التحقق من الانتهاء
+                if collectedCrystals >= totalCrystals then
+                    showCompletionScreen()
                 end
-                break
             end
         end
     end)
     
-    -- بدء البرق فوراً
-    spawn(function()
-        wait(1)
-        createLightning()
+    return crystal
+end
+
+-- دالة تأثير جمع الكريستال
+local function showCollectionEffect(crystalNumber)
+    local effectGui = Instance.new("ScreenGui")
+    effectGui.Parent = PlayerGui
+    
+    local effectText = Instance.new("TextLabel")
+    effectText.Size = UDim2.new(0, 200, 0, 60)
+    effectText.Position = UDim2.new(0.5, -100, 0.3, 0)
+    effectText.BackgroundTransparency = 1
+    effectText.TextColor3 = Color3.fromRGB(255, 255, 0)
+    effectText.Text = "جوهرة " .. crystalNumber .. " ✓"
+    effectText.Font = Enum.Font.GothamBold
+    effectText.TextSize = 24
+    effectText.TextStrokeTransparency = 0
+    effectText.Parent = effectGui
+    
+    -- تأثير الظهور
+    local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(effectText, tweenInfo, {
+        Position = UDim2.new(0.5, -100, 0.2, 0),
+        TextTransparency = 1
+    })
+    
+    tween:Play()
+    tween.Completed:Connect(function()
+        effectGui:Destroy()
     end)
 end
 
--- أحداث النقر
-smallButton.MouseButton1Click:Connect(toggleMenu)
-
-lightningButton.MouseButton1Click:Connect(function()
-    if cooldownActive then return end
+-- دالة شاشة الانتهاء
+local function showCompletionScreen()
+    local completionGui = Instance.new("ScreenGui")
+    completionGui.Parent = PlayerGui
     
-    cooldownActive = true
-    remainingTime = cooldownTime
+    local background = Instance.new("Frame")
+    background.Size = UDim2.new(1, 0, 1, 0)
+    background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    background.BackgroundTransparency = 0.3
+    background.Parent = completionGui
     
-    -- بدء العداد والتأثيرات
-    spawn(updateCooldown)
-    spawn(startLightningEffect)
+    local completionFrame = Instance.new("Frame")
+    completionFrame.Size = UDim2.new(0, 400, 0, 300)
+    completionFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+    completionFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    completionFrame.BorderSizePixel = 0
+    completionFrame.Parent = completionGui
     
-    -- تعطيل الزر مؤقتاً
-    lightningButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-end)
-
--- إغلاق القائمة عند النقر خارجها
-local function closeMenuOnClickOutside(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-        local buttonPos = smallButton.AbsolutePosition
-        local buttonSize = smallButton.AbsoluteSize
-        local menuPos = menuFrame.AbsolutePosition
-        local menuSize = menuFrame.AbsoluteSize
-        
-        local x, y = mouse.X, mouse.Y
-        
-        -- إذا النقر خارج الزر والقائمة
-        if not (x >= buttonPos.X and x <= buttonPos.X + buttonSize.X and y >= buttonPos.Y and y <= buttonPos.Y + buttonSize.Y) and
-           not (x >= menuPos.X and x <= menuPos.X + menuSize.X and y >= menuPos.Y and y <= menuPos.Y + menuSize.Y) then
-            menuFrame.Visible = false
-        end
-    end
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 80)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Text = "🎉 مبروك! 🎉"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 28
+    title.Parent = completionFrame
+    
+    local message = Instance.new("TextLabel")
+    message.Size = UDim2.new(1, 0, 0, 100)
+    message.Position = UDim2.new(0, 0, 0, 90)
+    message.BackgroundTransparency = 1
+    message.TextColor3 = Color3.fromRGB(255, 255, 255)
+    message.Text = "لقد جمعت جميع الجواهر!\n\nالطاقة كاملة!"
+    message.Font = Enum.Font.Gotham
+    message.TextSize = 20
+    message.TextYAlignment = Enum.TextYAlignment.Center
+    message.Parent = completionFrame
+    
+    local crystalImage = Instance.new("ImageLabel")
+    crystalImage.Size = UDim2.new(0, 100, 0, 100)
+    crystalImage.Position = UDim2.new(0.5, -50, 0, 180)
+    crystalImage.BackgroundTransparency = 1
+    crystalImage.Image = "rbxassetid://6251281936"
+    crystalImage.Parent = completionFrame
+    
+    -- تشغيل صوت النصر
+    local victorySound = Instance.new("Sound")
+    victorySound.SoundId = "rbxassetid://5226834046"
+    victorySound.Volume = 1.0
+    victorySound.Parent = completionFrame
+    victorySound:Play()
 end
 
-game:GetService("UserInputService").InputBegan:Connect(closeMenuOnClickOutside)
+-- دالة بدء اللعبة
+local function startCrystalGame()
+    -- إنشاء جميع الكريستالات
+    for i, location in ipairs(crystalLocations) do
+        local crystal = createCrystal(location, i)
+        table.insert(crystals, crystal)
+    end
+    
+    print("🎮 بدأت لعبة الجواهر! هناك " .. totalCrystals .. " جوهرة يجب جمعها")
+end
 
-print("تم تحميل نظام البرق بنجاح! v1.0 - النسخة الهادئة")
+-- بدء اللعبة عند التحميل
+startCrystalGame()
+
+-- تنظيف عند إعادة التوليد
+Player.CharacterAdded:Connect(function()
+    collectedCrystals = 0
+    counterText.Text = collectedCrystals .. " / " .. totalCrystals
+    
+    -- إعادة تعيين الكريستالات
+    for _, crystal in ipairs(crystals) do
+        if crystal then
+            crystal:Destroy()
+        end
+    end
+    crystals = {}
+    
+    wait(3) -- انتظار تحميل الشخصية
+    startCrystalGame()
+end)
